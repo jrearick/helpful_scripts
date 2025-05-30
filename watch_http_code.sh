@@ -5,10 +5,11 @@ set -e
 [ -z "$1" ] && echo -e "Example:\n$0 http://www.example.com" && exit 1;
 
 # Number of seconds between checks.
+# Be a good citizen and don't spam query.
 # 900 seconds = 15 mins
-durationSleep=900;
+durationSleep=300;
 
-original=$(curl -s -I $1 |grep "HTTP/");
+original=$(curl -s -I --insecure $1 |grep "HTTP/");
 
 echo "Original HTTP Code:";
 echo $original;
@@ -20,7 +21,7 @@ echo "";
 stop=0;
 while [ $stop -lt 1 ]
 do
-  new=$(curl -s -I $1 |grep "HTTP/");
+  new=$(curl -s -I --insecure $1 |grep "HTTP/")
   
   if [[ "$new" != "$original" ]]
   then
@@ -34,6 +35,7 @@ do
     say "HTTP Code Changed!" &
     
   else
+    printf '.'
     sleep $durationSleep;
   fi
 done

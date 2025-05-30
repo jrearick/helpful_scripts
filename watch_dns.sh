@@ -2,15 +2,46 @@
 
 set -e
 
-[ -z "$1" ] && echo -e "Example:\n$0 www.ent.iastate.edu" && exit 1;
+[ -z "$1" ] && echo -e "Example:\n$0 example.com txt 8.8.8.8" && exit 1;
 
+DOMAIN=$1
+TYPE=$2
+NAMESERVER=$3
+
+# Be a good citizen and don't spam query.
 # 900 seconds = 15 mins
 durationSleep=900;
 
-original=$(dig $1 |grep -A1 "ANSWER SECTION"|tail -1);
+echo
+if [ -z $TYPE ];
+then
+  TYPE="A"
+fi
+
+if [ -z $NAMESERVER ];
+then
+  echo "NAMESERVER: system"
+else
+  echo "NAMESERVER: $NAMESERVER"
+  NAMESERVER="@$NAMESERVER"
+fi
+
+echo "DOMAIN: $DOMAIN"
+echo "TYPE: $TYPE"
+echo
+
+original_response=$(dig -t $TYPE $DOMAIN $NAMESERVER +short)
+# When multiple values exist, they come in random order. Alphabetize them.
+original=$(echo "$original_response" | sort) 
+
 
 echo "Original Record: ";
-echo $original;
+if [ -z "${original}" ]
+then
+  echo "Not Found"
+else
+  echo "$original";
+fi
 
 echo "";
 echo "Watching DNS every $durationSleep seconds...";
@@ -19,20 +50,23 @@ echo "";
 stop=0;
 while [ $stop -lt 1 ]
 do
-  new=$(dig $1 |grep -A1 "ANSWER SECTION"|tail -1);
+  new_response=$(dig -t $TYPE $DOMAIN $NAMESERVER +short);
+  # When multiple values exist, they come in random order. Alphabetize them.
+  new=$(echo "$new_response" | sort)
   
   if [[ "$new" !=  "$original" ]]
   then
     stop=1;
 
     echo "DNS Record Updated!"
-    echo $new;
+    echo "$new";
     
     # Ring the bell to get attention.
-    echo -e "\a\a\a\a";
-    say "DNS Record Updated!"
+    echo -e "\a";
+    say "DNS Rec-ord Updated!"&
     
   else
+    printf "."
     sleep $durationSleep;
   fi
 done
